@@ -1,0 +1,13 @@
+schema = {
+    "type": "json_schema",
+    "name": "simple_summary",
+    "schema": {
+        "type": "object",
+        "properties": {
+            "summary": {"type": "string"}
+        },
+        "required": ["summary"],
+        "additionalProperties": False
+    },
+    "strict": True
+}

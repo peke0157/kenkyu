@@ -45,7 +45,7 @@ article_payload = {
 }
 
 response = client.responses.create(
-    model="gpt-5.4",
+    model="gpt-5-mini",
     instructions=instructions,
     input=json.dumps(article_payload, ensure_ascii=False),
     text={"format": schema},
