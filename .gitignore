@@ -1,6 +1,15 @@
 # =======================
 # 1.データセットとモデル（絶対に公開しないもの）
 # =======================
+# データセットモデルのファイルを無視
+data/raw/
+japanese-daily-dialogue/
+
+# ラベル付与済みデータ
+data/processed/
+*.csv
+*.json
+*.jsonl
 
 
 # 音声ファイルを表す拡張子を無視
@@ -13,6 +22,12 @@
 *.wma
 
 # 学習済みのモデルの重みファイル（容量が大きいため）
+model/
+checkpoints/
+outputs/
+runs/
+*.pt
+*.bin
 *.npy
 # PyTorch
 *.pth     
