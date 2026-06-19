@@ -1,9 +1,0 @@
-output = {
-    "message": "こんにちは",
-    "items": ["A", "B", "C"]
-}
-
-Path("output.json").write_text(
-    json.dumps(output, ensure_ascii=False, indent=2),
-    encoding="utf-8"
-)
