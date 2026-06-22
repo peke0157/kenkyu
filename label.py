@@ -14,9 +14,8 @@ save_path = Path("outputs")
 corpus_path = Path("japanese-daily-dialogue/data/topic1.json")
 
 
-def load_dataset(path):
-    with corpus_path.open("r", encoding="utf-8") as f:
-        return json.load(f)
+with corpus_path.open("r", encoding="utf-8") as f:
+    data = json.load(f)
 
 
 def judge_self_disclosure(text):
@@ -28,8 +27,7 @@ def judge_self_disclosure(text):
     }"""
 
     response = client.responses.create(
-        model="gpt-5-mini",
-        instructions=instructions,
+        model="gpt-5-mini", instructions=instructions, input=text
     )
 
     result = response.output_text.strip()
@@ -60,14 +58,15 @@ def label_dataset(utterances):
 # 判定結果を保存する
 def save_list(label_list):
     with save_path.open("label_output.json", "w", encoding="utf-8") as f:
-        json.dumps(label_list, ensure_ascii=False, indent=4),
+        json.dump(label_list, ensure_ascii=False, indent=4),
 
 
 def main():
-    utterances = load_dataset(corpus_path)
-    for i in range(10):
+    for dialogue in data[:10]:
+        for utterance in dialogue["utterances"]:
+            judge_self_disclosure(utterance["utterance"])
 
-        label_list = label_dataset(utterances)
+    label_list = label_dataset(dialogue)
 
     save_list(label_list)
     print("保存完了")
