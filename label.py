@@ -10,7 +10,7 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 prompt_path = Path("prompts/labelprompt.txt")
 instructions = prompt_path.read_text(encoding="utf-8")
-save_path = Path("outputs")
+save_path = Path("outputs/label_output.json")
 corpus_path = Path("japanese-daily-dialogue/data/topic1.json")
 
 
@@ -57,8 +57,8 @@ def label_dataset(utterances):
 
 # 判定結果を保存する
 def save_list(label_list):
-    with save_path.open("label_output.json", "w", encoding="utf-8") as f:
-        json.dump(label_list, ensure_ascii=False, indent=4),
+    with save_path.open("w", encoding="utf-8") as f:
+        json.dumps(f, ensure_ascii=False, indent=4),
 
 
 def main():
