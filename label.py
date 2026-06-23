@@ -43,7 +43,9 @@ def label_dataset(utterances):
 
     label_list = []
 
-    for i, text in enumerate(utterances):
+    for i, utterances_data in enumerate(utterances):
+        print(i, text)
+        text = utterances_data["utterances"]
 
         label = judge_self_disclosure(text)
 
@@ -58,7 +60,7 @@ def label_dataset(utterances):
 # 判定結果を保存する
 def save_list(label_list):
     with save_path.open("w", encoding="utf-8") as f:
-        json.dumps(f, ensure_ascii=False, indent=4),
+        json.dumps(label_list, ensure_ascii=False, indent=4),
 
 
 def main():
@@ -67,6 +69,7 @@ def main():
             judge_self_disclosure(utterance["utterance"])
 
     label_list = label_dataset(dialogue)
+    print(label_list)
 
     save_list(label_list)
     print("保存完了")
