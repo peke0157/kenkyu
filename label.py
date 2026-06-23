@@ -31,8 +31,11 @@ def judge_self_disclosure(text):
     )
 
     result = response.output_text.strip()
-
-    if result == "1":
+    result_list = json.loads(result)
+    
+    self_disclosure = result_list[0]["self_disclosure"]
+    print(self_disclosure)
+    if self_disclosure == "1":
         return 1
     else:
         return 0
@@ -44,12 +47,18 @@ def label_dataset(utterances):
     label_list = []
 
     for i, utterances_data in enumerate(utterances):
-        print(i, text)
-        text = utterances_data["utterances"]
+        text = utterances_data["utterance"]
 
         label = judge_self_disclosure(text)
 
-        label_list.append({"text": text, "label": label})
+        label_list.append(
+            {
+                "turn_num": utterances_data["turn_num"],
+                "speaker": utterances_data["speaker"],
+                "utterance": text,
+                "self_disclosure": label,
+            }
+        )
 
         print(f"{i+1} / {len(utterances)} 完了")
         time.sleep(1)
@@ -60,18 +69,17 @@ def label_dataset(utterances):
 # 判定結果を保存する
 def save_list(label_list):
     with save_path.open("w", encoding="utf-8") as f:
-        json.dumps(label_list, ensure_ascii=False, indent=4),
+        json.dump(label_list, f, ensure_ascii=False, indent=4)
 
 
 def main():
+    # 空のリストを用意
+    all_labels = []
     for dialogue in data[:10]:
-        for utterance in dialogue["utterances"]:
-            judge_self_disclosure(utterance["utterance"])
+        label_list = label_dataset(dialogue["utterances"])
+        all_labels.extend(label_list)
 
-    label_list = label_dataset(dialogue)
-    print(label_list)
-
-    save_list(label_list)
+    save_list(all_labels)
     print("保存完了")
 
 

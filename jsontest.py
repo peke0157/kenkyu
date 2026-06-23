@@ -14,7 +14,7 @@ with corpus_path.open("r", encoding="utf-8") as f:
 """
 
 for dialogue in data[:10]:
-    print(dialogue["dialogue_id"])
+    print(dialogue["utterances"])
     for utterance in dialogue["utterances"]:
         print(utterance["speaker"], utterance["utterance"])
         """
