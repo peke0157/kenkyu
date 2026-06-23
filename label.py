@@ -18,6 +18,7 @@ with corpus_path.open("r", encoding="utf-8") as f:
     data = json.load(f)
 
 
+
 def judge_self_disclosure(text):
     """1発話を自己開示判定する
     戻り値：0 または 1
@@ -34,7 +35,7 @@ def judge_self_disclosure(text):
     result_list = json.loads(result)
     
     self_disclosure = result_list[0]["self_disclosure"]
-    print(self_disclosure)
+    
     if self_disclosure == "1":
         return 1
     else:
@@ -45,7 +46,7 @@ def judge_self_disclosure(text):
 def label_dataset(utterances):
 
     label_list = []
-
+    
     for i, utterances_data in enumerate(utterances):
         text = utterances_data["utterance"]
 
@@ -76,6 +77,9 @@ def main():
     # 空のリストを用意
     all_labels = []
     for dialogue in data[:10]:
+        label_num = dialogue["dialogue_id"]
+        print(type(label_num))
+        all_labels.append(label_num)
         label_list = label_dataset(dialogue["utterances"])
         all_labels.extend(label_list)
 
