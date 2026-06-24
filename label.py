@@ -27,11 +27,12 @@ def judge_self_disclosure(text):
         "dialogue": 
     }"""
 
+    print(text)
     response = client.responses.create(
         model="gpt-5-mini", instructions=instructions, input=text
     )
-
     result = response.output_text.strip()
+    print(repr(result))
     result_list = json.loads(result)
     
     self_disclosure = result_list[0]["self_disclosure"]
@@ -47,20 +48,23 @@ def label_dataset(utterances):
 
     label_list = []
     
-    for i, utterances_data in enumerate(utterances):
-        text = utterances_data["utterance"]
+        
+    text = [item["utterance"] for item in utterances]
+    print(text)
 
-        label = judge_self_disclosure(text)
-
+    label = judge_self_disclosure(text)
+    for i in text:
+        
         label_list.append(
-            {
-                "turn_num": utterances_data["turn_num"],
-                "speaker": utterances_data["speaker"],
-                "utterance": text,
-                "self_disclosure": label,
-            }
-        )
-
+                {
+                    "turn_num": utterances["turn_num"],
+                    "speaker": utterances["speaker"],
+                    "utterance": text[i],
+                    "self_disclosure": label,
+                }
+            )
+    for i in utterances:
+        
         print(f"{i+1} / {len(utterances)} 完了")
         time.sleep(1)
 
@@ -76,9 +80,9 @@ def save_list(label_list):
 def main():
     # 空のリストを用意
     all_labels = []
-    for dialogue in data[:10]:
+    for dialogue in data[:1]:
         label_num = dialogue["dialogue_id"]
-        print(type(label_num))
+        print(label_num)
         all_labels.append(label_num)
         label_list = label_dataset(dialogue["utterances"])
         all_labels.extend(label_list)

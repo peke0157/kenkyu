@@ -7,9 +7,10 @@ corpus_path = Path("japanese-daily-dialogue/data/topic1.json")
 
 with corpus_path.open("r", encoding="utf-8") as f:
     data = json.load(f)
+    print(type(data))
     
 data_list = [item['dialogue_id'] for item in data]
-print(data_list)
+
 
 
 """for i in range(10):
@@ -18,9 +19,12 @@ print(data_list)
 """
 
 for dialogue in data[:10]:
-    for utterance in dialogue["utterances"]:
-        
-        """
+    print(type(dialogue))
+    print(dialogue["utterances"])
+    """
+    print(type(dialogue))
+    utterances = [item["utterances"] for item in dialogue]
+    print(utterances)
         print(data[i])
         print(data[i]["utterances"])
         """
