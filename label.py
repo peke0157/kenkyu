@@ -31,42 +31,35 @@ def judge_self_disclosure(text):
     response = client.responses.create(
         model="gpt-5-mini", instructions=instructions, input=text
     )
+    print(type(text))
     result = response.output_text.strip()
-    print(repr(result))
+    repr(result)
     result_list = json.loads(result)
     
-    self_disclosure = result_list[0]["self_disclosure"]
-    
-    if self_disclosure == "1":
-        return 1
-    else:
-        return 0
-
+    return result_list
 
 # ラベルを付与する関数
 def label_dataset(utterances):
 
     label_list = []
     
-        
-    text = [item["utterance"] for item in utterances]
-    print(text)
+    input_list = []
+    
+    for dialogue_data in utterances:
+        input_data = dialogue_data["utterance"]
+        input_list.append(input_data)
+        input_api = "\n".join(input_list)
 
-    label = judge_self_disclosure(text)
-    for i in text:
-        
-        label_list.append(
-                {
-                    "turn_num": utterances["turn_num"],
-                    "speaker": utterances["speaker"],
-                    "utterance": text[i],
-                    "self_disclosure": label,
-                }
-            )
-    for i in utterances:
-        
-        print(f"{i+1} / {len(utterances)} 完了")
-        time.sleep(1)
+    label = judge_self_disclosure(input_api)
+    print(label)  
+    print(type(label))      
+    label_list.append(label)
+    
+    length = len(input_data)
+    for i in range(length-2):
+            
+            print(f"{i+1} / {len(utterances)} 完了")
+            time.sleep(1)
 
     return label_list
 
