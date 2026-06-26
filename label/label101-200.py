@@ -10,7 +10,7 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 prompt_path = Path("../prompts/labelprompt.txt")
 instructions = prompt_path.read_text(encoding="utf-8")
-save_path = Path("../outputs/label_output.json")
+save_path = Path("../outputs/label_output_101-200.json")
 corpus_path = Path("../japanese-daily-dialogue/data/topic1.json")
 
 
@@ -56,7 +56,7 @@ def label_dataset(utterances):
     length = len(label_list)
     for i in range(length):
             
-            print(f"{len(utterances)}発話ラベル処理完了")
+            print(f"{len(utterances)} ラベル処理完了")
             time.sleep(1)
 
     return label_list
@@ -71,7 +71,7 @@ def save_list(label_list):
 def main():
     # 空のリストを用意
     all_labels = []
-    for dialogue in data[:100]:
+    for dialogue in data[100:200]:
         label_num = dialogue["dialogue_id"]
         print(label_num)
         all_labels.append(label_num)
