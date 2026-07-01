@@ -22,6 +22,7 @@ def load_label_data(file_path, file1_path):
         file1_data = json.load(f1)
     return file_data, file1_data
 
+
 def chatbot():
     print("今日はどんな1日でしたか？")
     
