@@ -25,6 +25,7 @@ data/processed/
 model/
 checkpoints/
 outputs/
+my_custom_bert/
 runs/
 *.pt
 *.bin
