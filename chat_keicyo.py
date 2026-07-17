@@ -6,6 +6,7 @@ import json
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 
+threshold = 0.7
 load_dotenv()
 prompt_path = Path("prompts/keicyo.txt")
 base_prompt = prompt_path.read_text(encoding="utf-8")
@@ -35,14 +36,17 @@ def chatbot():
         inputs = bert_tokenizer(user_input, return_tensors="pt")
         with torch.no_grad():
             outputs = bert_model(**inputs)
-            prediction = torch.softmax(outputs.logits, dim=-1).item()
-            prediction_class = torch.argmax(prediction, dim=-1)
-            is_bert_judge = prediction_class == 1
+            prediction = torch.softmax(outputs.logits, dim=-1)
+            prediction_class = torch.argmax(prediction, dim=-1).item()
+            is_bert_judge = prediction[0, 0].item()
+            is_no_bert_judge = prediction[0, 1].item()
 
-        if is_bert_judge:
+        if is_bert_judge >= threshold:
             judge_prompt = "自己開示有り"
-        else:
+        elif is_no_bert_judge >= threshold:
             judge_prompt = "自己開示無し"
+        else:
+            judge_prompt = "自己開示曖昧"
         system_prompt = f"{base_prompt}\n : {judge_prompt}"
         response = client.responses.create(
             model="gpt-5-mini", instructions=system_prompt, input=conversation_history
