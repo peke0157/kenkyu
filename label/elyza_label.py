@@ -29,16 +29,25 @@ def judge_self_disclosure(text):
         "dialogue": 
     }"""
 
-    llm.create_chat_completion(
+    start_time = time.perf_counter()
+
+    response = llm.create_chat_completion(
         messages=[
             {"role": "system", "content": instructions},
             {"role": "user", "content": text},
         ]
     )
 
-    result = llm.create_chat_completion.output_text.strip()
+    content = response["choices"][0]["message"]["content"]
+    result = content.strip()
     repr(result)
+
     result_list = json.loads(result)
+
+    print(result_list)
+
+    fin_time = time.perf_counter() - start_time
+    print(fin_time)
 
     return result_list
 
@@ -84,7 +93,6 @@ def main():
         all_labels.append(label_num)
         label_list = label_dataset(dialogue["utterances"])
         all_labels.extend(label_list)
-        print(all_labels)
 
     save_list(all_labels)
     print("保存完了")
