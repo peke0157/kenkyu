@@ -4,20 +4,20 @@ from pathlib import Path
 import json
 import time
 
-prompt_path = Path("../prompts/labelprompt.txt")
-instructions = prompt_path.read_text(encoding="utf-8")
-save_path = Path("../outputs/elyza_label_output.json")
-corpus_path = Path("../japanese-daily-dialogue/data/topic1.json")
+PROMPT_PATH = Path("../prompts/labelprompt.txt")
+instructions = PROMPT_PATH.read_text(encoding="utf-8")
+SAVE_PATH = Path("../outputs/elyza_label_output.json")
+CORPUS_PATH = Path("../japanese-daily-dialogue/data/topic1.json")
+N_CTX = int(os.getenv("LLAMA_N_CTX", "2048"))
+N_BATCH = int(os.getenv("LLAMA_N_BATCH", "256"))
 
-
-with corpus_path.open("r", encoding="utf-8") as f:
+with CORPUS_PATH.open("r", encoding="utf-8") as f:
     data = json.load(f)
 
 llm = Llama.from_pretrained(
     repo_id="elyza/Llama-3-ELYZA-JP-8B-GGUF",
     filename="Llama-3-ELYZA-JP-8B-q4_k_m.gguf",
     chat_format="llama-3",
-    n_ctx=1024,
 )
 
 
@@ -35,13 +35,14 @@ def judge_self_disclosure(text):
         messages=[
             {"role": "system", "content": instructions},
             {"role": "user", "content": text},
-        ]
+        ],
+        max_tokens=2048,
     )
 
     content = response["choices"][0]["message"]["content"]
     result = content.strip()
-    repr(result)
 
+    print("モデルの生出力:", repr(result))
     result_list = json.loads(result)
 
     print(result_list)
@@ -63,9 +64,9 @@ def label_dataset(utterances):
         input_data = dialogue_data["utterance"]
         print(input_data)
         input_list.append(input_data)
-        input_api = "\n".join(input_list)
+        input_elyza = "\n".join(input_list)
 
-    label = judge_self_disclosure(input_api)
+    label = judge_self_disclosure(input_elyza)
 
     label_list.append(label)
 
@@ -80,7 +81,7 @@ def label_dataset(utterances):
 
 # 判定結果を保存する
 def save_list(label_list):
-    with save_path.open("w", encoding="utf-8") as f:
+    with SAVE_PATH.open("w", encoding="utf-8") as f:
         json.dump(label_list, f, ensure_ascii=False, indent=4)
 
 
