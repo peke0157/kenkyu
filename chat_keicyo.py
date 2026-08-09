@@ -49,7 +49,7 @@ def chatbot():
             judge_prompt = "自己開示曖昧"
         system_prompt = f"{base_prompt}\n : {judge_prompt}"
         response = client.responses.create(
-            model="gpt-5-mini", instructions=system_prompt, input=conversation_history
+            model="gpt-5.6-luna", instructions=system_prompt, input=conversation_history
         )
         print(f"GPT:  {response.output_text}")
         conversation_history.append(
