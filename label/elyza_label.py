@@ -9,11 +9,11 @@ PROMPT_PATH = Path("../prompts/labelprompt.txt")
 SAVE_PATH = Path("../outputs/elyza_label_output.json")
 CORPUS_PATH = Path("../japanese-daily-dialogue/data/topic1.json")
 
-N_CTX = int(os.getenv("LLAMA_N_CTX", "2048"))
+N_CTX = int(os.getenv("LLAMA_N_CTX", "4096"))
 N_BATCH = int(os.getenv("LLAMA_N_BATCH", "512"))
 MODEL_REPO = "elyza/Llama-3-ELYZA-JP-8B-GGUF"
 MODEL_FILENAME = "Llama-3-ELYZA-JP-8B-q4_k_m.gguf"
-MAX_OUTPUT_TOKENS = int(os.getenv("LLAMA_N_TOKENS", "512"))
+MAX_OUTPUT_TOKENS = int(os.getenv("LLAMA_N_TOKENS", "2048"))
 
 # 設定値の間違いを確認する
 if N_CTX < 2048:
