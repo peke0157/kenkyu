@@ -50,21 +50,64 @@ else:
     )
 
 
+def make_response_schema(utterance_count):
+    """出力をJSONとしてスキーマを定義"""
+    return {
+        "type": "array",
+        "minItems": utterance_count,
+        "maxItems": utterance_count,
+        "items": {
+            "type": "object",
+            "properties": {
+                "turn_num": {
+                    "type": "integer",
+                    "minimum": 1,
+                },
+                "speaker": {
+                    "type": "string",
+                },
+                "utterance": {
+                    "type": "string",
+                },
+                "self_disclosure": {
+                    "type": "string",
+                    "enum": ["0", "1", "2", "3", "4"],
+                },
+            },
+            "required": [
+                "turn_num",
+                "speaker",
+                "utterance",
+                "self_disclosure",
+            ],
+            "additionalProperties": False,
+        },
+    }
+
+
 def judge_self_disclosure(text):
-    """1発話を自己開示判定する
-    戻り値：0 または 1
-    """
-    """topic_payload = {
-        "dialogue": 
-    }"""
+
+    input_data = [
+        {
+            "turn_num": item["turn_num"],
+            "speaker": item["speaker"],
+            "utterance": item["utterance"],
+        }
+        for item in text
+    ]
+    input_json = json.dumps(input_data, ensure_ascii=False)
 
     start_time = time.perf_counter()
-    max_tokens = min(MAX_OUTPUT_TOKENS, 32 + 4 * len(text))
+    max_tokens = min(MAX_OUTPUT_TOKENS, 64 + 100 * len(text))
     response = llm.create_chat_completion(
         messages=[
             {"role": "system", "content": instructions},
-            {"role": "user", "content": text},
+            {"role": "user", "content": input_json},
         ],
+        response_format={
+            "type": "json_object",
+            "schema": make_response_schema(len(text)),
+        },
         temperature=0,
         max_tokens=max_tokens,
     )
@@ -81,10 +124,14 @@ def judge_self_disclosure(text):
     print("モデルの生出力:", repr(result))
     result_list = json.loads(result)
 
-    print(result_list)
-
     fin_time = time.perf_counter() - start_time
-    print(fin_time)
+    usage = response.get("usage", {})
+
+    print(
+        f"{fin_time: .2f}s"
+        f"(入力: {usage.get('prompt_tokens', '?')} tokens, "
+        f"出力: {usage.get('completion_tokens', '?')} tokens)"
+    )
 
     return result_list
 
@@ -94,15 +141,7 @@ def label_dataset(utterances):
 
     label_list = []
 
-    input_list = []
-
-    for dialogue_data in utterances:
-        input_data = dialogue_data["utterance"]
-        print(input_data)
-        input_list.append(input_data)
-        input_elyza = "\n".join(input_list)
-
-    label = judge_self_disclosure(input_elyza)
+    label = judge_self_disclosure(utterances)
 
     label_list.append(label)
 
@@ -124,7 +163,7 @@ def save_list(label_list):
 def main():
     # 空のリストを用意
     all_labels = []
-    for dialogue in data[:5]:
+    for dialogue in data[:200]:
         label_num = dialogue["dialogue_id"]
         print(label_num)
         all_labels.append(label_num)

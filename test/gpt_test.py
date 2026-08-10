@@ -6,7 +6,6 @@ from pathlib import Path
 from huggingface_hub import try_to_load_from_cache
 from llama_cpp import Llama
 
-
 BASE_DIR = Path(__file__).resolve().parent
 PROMPT_PATH = BASE_DIR / "../prompts/labelprompt.txt"
 SAVE_PATH = BASE_DIR / "../outputs/elyza_label_output.json"
