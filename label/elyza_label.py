@@ -73,6 +73,10 @@ def make_response_schema(utterance_count):
                     "type": "string",
                     "enum": ["0", "1", "2", "3", "4"],
                 },
+                "desirability": {
+                    "type": "string",
+                    "enum": ["P", "M", "N"],  # "P":Positive, "M":Mixed, "N":Negative
+                },
             },
             "required": [
                 "turn_num",
