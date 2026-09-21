@@ -12,8 +12,11 @@ data/processed/
 *.jsonl
 
 # codex and ClaudeCode--------------------
-*.codex/
-*.claude/
+.codex/
+.claude/
+
+# codex,claudecodeに聞いたことのメモを無視
+docs/
 
 # 音声ファイルを表す拡張子を無視
 *.wav
