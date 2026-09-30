@@ -8,7 +8,7 @@ import torch
 
 threshold = 0.7
 load_dotenv()
-prompt_path = Path("prompts/keicyo.txt")
+prompt_path = Path("prompts/keicyo.md")
 base_prompt = prompt_path.read_text(encoding="utf-8")
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
