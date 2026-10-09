@@ -57,8 +57,12 @@ __pycache__/
 
 # 仮想環境のフォルダ
 ./venv/
+.venv/
+*.venv/
+.venv*/
 venv/
 env/
+
 
 # 環境変数（APIキーやパスワードなどを書いたファイル）
 .env

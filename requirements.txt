@@ -1,0 +1,26 @@
+# Install in the project virtual environment:
+# python -m pip install -r requirements.txt
+# Versions match the inspected environment, except scikit-learn (not installed).
+
+# OpenAI chat scripts and .env loading
+openai==2.37.0
+python-dotenv==1.2.2
+
+# BERT classification (preserve the current CPU-only PyTorch build)
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.8.0+cpu
+transformers==5.12.1
+
+# Required by my_custom_bert/tokenizer_config.json (MeCab + unidic_lite)
+fugashi==1.5.2
+unidic-lite==1.0.8
+
+# Local ELYZA/GGUF scripts; llama-cpp-python may require a C/C++ build toolchain
+huggingface-hub==1.21.0
+llama-cpp-python==0.3.31
+
+# CSV conversion and classification evaluation
+numpy==2.4.6
+pandas==3.0.3
+# Imported by test/fscore.py; no installed version was available to pin.
+scikit-learn

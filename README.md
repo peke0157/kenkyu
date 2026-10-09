@@ -70,7 +70,8 @@ kenkyu/
 
 Pythonと、少なくとも `openai`、`python-dotenv`、`transformers`、`torch` が必要です。依存パッケージの固定ファイルは現在ありません。必要に応じて利用するPython環境にインストールしてください。
 
-OpenAI APIキーを環境変数 `OPENAI_API_KEY` に設定します。リポジトリ直下の `.env` を使う場合の書式は次のとおりです。キーをGitに登録しないでください。
+OpenAI APIキーを環境変数 `OPENAI_API_KEY` に設定します。リポジトリ直下の `.env` を使う場合の書式は次のとおりです。\
+※キーをGitに登録しないでください。
 
 ```dotenv
 OPENAI_API_KEY=your_api_key_here
