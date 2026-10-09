@@ -1,39 +1,56 @@
 # kenkyu
 
-日本語の対話生成と、発話の自己開示判定を試す研究・学習用リポジトリです。対話用スクリプトはリポジトリ直下にあり、応答方針は `prompts/` に置いています。分類モデルの `my_custom_bert/` はローカルで用意するファイルで、Gitの追跡対象ではありません。
+日本語の対話生成と、発話の自己開示判定を試す研究・学習用リポジトリです。対話用スクリプトは `dialogues/`、入門用スクリプトは `intro/` にあり、応答方針は `prompts/` に置いています。分類モデルの `my_custom_bert/` はローカルで用意するファイルで、Gitの追跡対象ではありません。
 
 ## 対話プログラム
 
 | ファイル | 内容 | 主な参照先・実行上の注意 |
 | --- | --- | --- |
-| [`chat_keicyo_revised.py`](chat_keicyo_revised.py) | 傾聴を重視する対話の修正版。直近の発話をBERTで自己開示判定し、その結果と会話履歴をOpenAI APIへ渡します。 | `prompts/keicyo_binary.md`、ローカルで用意する `my_custom_bert/`。最初に試す場合はこちら。 |
-| [`chat_keicyo.py`](chat_keicyo.py) | 傾聴を重視する元の実験用スクリプト。BERTの判定結果を応答プロンプトに追加します。 | `prompts/keicyo.md`、`my_custom_bert/`。クラス0と1の解釈が確認用コードと一致せず、5段階の指示に対して判定結果は2クラスです。 |
-| [`chat_kyokan.py`](chat_kyokan.py) | 共感を重視する対話。BERTによる自己開示の有無も応答に反映します。 | `prompts/kyokan.md`、`my_custom_bert/`。起動時にこれらを読み込みます。 |
-| [`chat_normal.py`](chat_normal.py) | 通常の対話を試すスクリプト。 | `prompts/chatprompt.md`。現在は起動時に `outputs/` のJSONを読みますが、このリポジトリに `outputs/` はなく、文字コード指定にも誤記があります。現状のままでは起動できません。 |
-| [`elyza_chat.py`](elyza_chat.py) | ELYZAのローカルLLMを使う対話の実験用スクリプト。 | `llama_cpp` と別途用意するモデルが必要です。データ読み込みの呼び出しなどが未完成で、現状のままでは対話を実行できません。 |
+| [`chat_keicyo_revised.py`](dialogues/chat_keicyo_revised.py) | 傾聴を重視する対話の修正版。直近の発話をBERTで自己開示判定し、その結果と会話履歴をOpenAI APIへ渡します。 | `prompts/keicyo_binary.md`、ローカルで用意する `my_custom_bert/`。移動後の参照パス調整が必要です（下記参照）。 |
+| [`chat_keicyo.py`](dialogues/chat_keicyo.py) | 傾聴を重視する元の実験用スクリプト。BERTの判定結果を応答プロンプトに追加します。 | `prompts/keicyo.md`、`my_custom_bert/`。クラス0と1の解釈が確認用コードと一致せず、5段階の指示に対して判定結果は2クラスです。 |
+| [`chat_kyokan.py`](dialogues/chat_kyokan.py) | 共感を重視する対話。BERTによる自己開示の有無も応答に反映します。 | `prompts/kyokan.md`、`my_custom_bert/`。起動時にこれらを読み込みます。 |
+| [`chat_normal.py`](dialogues/chat_normal.py) | 通常の対話を試すスクリプト。 | `prompts/chatprompt.md`。起動時にGit管理外の `outputs/` のJSONを読みます。文字コード指定が `uft-8` になっているため、修正が必要です。 |
+| [`elyza_chat.py`](dialogues/elyza_chat.py) | ELYZAのローカルLLMを使う対話の実験用スクリプト。 | `llama_cpp` と別途用意するモデルが必要です。データ読み込みの呼び出しなどが未完成で、現状のままでは対話を実行できません。 |
 
 ファイル名は `chat_keicyo.py` です（`chat_kecyo.py` ではありません）。`chat_keicyo_revised.py` は元のスクリプトを置き換えず、別ファイルとして保存しています。
 
 ## ディレクトリ構成
 
-以下は `git ls-files` で確認した、Gitの追跡対象だけの構成です。ローカル専用のモデルや `.env` は含めていません。
+Git追跡中のファイルを現在の配置に合わせて示しています。移動先がまだ未追跡のファイルも含め、移動前の存在しないパスと `.gitignore` で除外されたファイル・ディレクトリは含めていません。
 
 ```text
 kenkyu/
 ├── .gitignore
 ├── README.md
-├── chat_keicyo.py
-├── chat_keicyo_revised.py
-├── chat_kyokan.py
-├── chat_normal.py
-├── elyza_chat.py
-├── ex4_3.py
-├── ex5.py
-├── example.py
-├── fin.py
-├── intro.py
-├── jsontest.py
-├── test.py
+├── requirements.txt
+├── ch07/
+│   ├── ex71.py
+│   └── ex7_2.py
+├── ch8/
+│   └── ch8.py
+├── dialogues/
+│   ├── chat_keicyo.py
+│   ├── chat_keicyo_revised.py
+│   ├── chat_kyokan.py
+│   ├── chat_normal.py
+│   ├── elyza_chat.py
+│   └── exp/
+│       └── jsontest.py
+├── intro/
+│   ├── ex4_3.py
+│   ├── ex5.py
+│   ├── example.py
+│   ├── fin.py
+│   ├── intro.py
+│   └── test.py
+├── label/
+│   ├── elyza_label.py
+│   ├── json_add.py
+│   ├── json_csv.py
+│   ├── label.py
+│   └── label101-200.py
+├── practice/
+│   └── test.py
 ├── prompts/
 │   ├── chatprompt.md
 │   ├── keicyo.md
@@ -42,45 +59,38 @@ kenkyu/
 │   ├── labelprompt.md
 │   ├── prompt.md
 │   └── seed_plan_prompt.txt
-├── label/
-│   ├── elyza_label.py
-│   ├── json_add.py
-│   ├── json_csv.py
-│   ├── label.py
-│   └── label101-200.py
-├── test/
-│   ├── bertcheck.py
-│   ├── bertkyu.py
-│   ├── elyza_test.py
-│   ├── fscore.py
-│   ├── gpt_test.py
-│   └── labeltest.py
-├── ch07/
-│   ├── ex71.py
-│   └── ex7_2.py
-├── ch8/
-│   └── ch8.py
-└── practice/
-    └── test.py
+└── test/
+    ├── bertcheck.py
+    ├── bertkyu.py
+    ├── elyza_test.py
+    ├── fscore.py
+    ├── gpt_test.py
+    └── labeltest.py
 ```
 
 `my_custom_bert/` は `.gitignore` で除外されています。傾聴・共感チャットの実行時にはローカルに配置してください。`outputs/` も追跡対象ではなく、一部の実験用スクリプトはそこに生成したJSONファイルがあることを前提にしています。
 
 ## 傾聴チャットの起動
 
-Pythonと、少なくとも `openai`、`python-dotenv`、`transformers`、`torch` が必要です。依存パッケージの固定ファイルは現在ありません。必要に応じて利用するPython環境にインストールしてください。
+リポジトリ直下で、使用する仮想環境を有効にしてから依存ライブラリをインストールします。`requirements.txt` には対話・ラベル付け・評価用の依存ライブラリをまとめており、PyTorchはCPU版を指定しています。
 
-OpenAI APIキーを環境変数 `OPENAI_API_KEY` に設定します。リポジトリ直下の `.env` を使う場合の書式は次のとおりです。\
+```bash
+python -m pip install -r requirements.txt
+```
+
+OpenAI APIキーを環境変数 `OPENAI_API_KEY` に設定します。`.env` を使う場合の書式は次のとおりです。修正版は現在 `dialogues/.env` を明示的に読み込むため、リポジトリ直下の `.env` を使うには読み込みパスの調整が必要です。\
 ※キーをGitに登録しないでください。
 
 ```dotenv
 OPENAI_API_KEY=your_api_key_here
 ```
 
-修正版は次のコマンドで起動します。
+修正版の現在の `BASE_DIR` は `dialogues/` を指しています。このため、プロンプトは `dialogues/prompts/keicyo_binary.md`、モデルは `dialogues/my_custom_bert/` を探します。リポジトリ直下の `prompts/` と `my_custom_bert/` を使うには、コード内の参照先をリポジトリ直下に合わせる必要があります。カレントディレクトリの変更だけでは解消しません。
+
+参照先を調整した後、リポジトリ直下で次のコマンドを実行します。
 
 ```bash
-python chat_keicyo_revised.py
+python dialogues/chat_keicyo_revised.py
 ```
 
 `User:` に日本語で入力すると返答が表示されます。`exit` で終了します。修正版はスクリプトの配置場所を基準にプロンプトとBERTモデルを探します。元の `chat_keicyo.py` と `chat_kyokan.py` は相対パスを使うため、リポジトリ直下から実行してください。
@@ -88,7 +98,7 @@ python chat_keicyo_revised.py
 共感対話を試す場合は、同じ環境で次を実行します。
 
 ```bash
-python chat_kyokan.py
+python dialogues/chat_kyokan.py
 ```
 
 ## `chat_keicyo_revised.py` の関数
@@ -111,7 +121,13 @@ python chat_kyokan.py
 
 空白だけの入力は無視します。`exit`、Ctrl+D、Ctrl+C で会話を終了します。この関数自体は返答文字列を返さず、ターミナルへの入出力を行います。
 
-ファイル末尾の `if __name__ == "__main__":` は関数ではなく、`python chat_keicyo_revised.py` で直接実行したときに `chatbot()` を起動するための条件です。
+ファイル末尾の `if __name__ == "__main__":` は関数ではなく、`python dialogues/chat_keicyo_revised.py` で直接実行したときに `chatbot()` を起動するための条件です。
+
+## ローカルLLM（Ollama）
+
+今後のローカルLLM利用に向けて、`requirements.txt` にPythonクライアントの `ollama` を含めています。既存のELYZA用スクリプトは `llama-cpp-python` を使用しており、Ollamaとの連携はまだ実装していません。
+
+Ollamaを利用するには、Pythonライブラリに加えてOllama本体を別途インストール・起動し、使用するモデルを `ollama pull <モデル名>` で取得します。詳しくは[Ollama Pythonライブラリの公式手順](https://github.com/ollama/ollama-python#prerequisites)を参照してください。
 
 ## 開発環境とデータセット
 

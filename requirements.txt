@@ -1,6 +1,7 @@
 # Install in the project virtual environment:
 # python -m pip install -r requirements.txt
-# Versions match the inspected environment, except scikit-learn (not installed).
+# Pinned versions match the inspected environment.
+# scikit-learn and ollama are unpinned additions.
 
 # OpenAI chat scripts and .env loading
 openai==2.37.0
@@ -18,6 +19,9 @@ unidic-lite==1.0.8
 # Local ELYZA/GGUF scripts; llama-cpp-python may require a C/C++ build toolchain
 huggingface-hub==1.21.0
 llama-cpp-python==0.3.31
+
+# Python client for planned Ollama integration (requires a running Ollama server)
+ollama
 
 # CSV conversion and classification evaluation
 numpy==2.4.6
