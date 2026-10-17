@@ -28,3 +28,7 @@ numpy==2.4.6
 pandas==3.0.3
 # Imported by test/fscore.py; no installed version was available to pin.
 scikit-learn
+
+# it is nesessary from excel to json 
+pandas
+openpyxl
