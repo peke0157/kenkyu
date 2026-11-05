@@ -34,6 +34,7 @@ checkpoints/
 outputs/
 my_custom_bert/
 runs/
+findata/
 *.pt
 *.bin
 *.npy
