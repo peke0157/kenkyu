@@ -28,6 +28,9 @@ docs/
 *.m4a
 *.wma
 
+# 設定・機密情報
+definitions.yaml
+
 # 学習済みのモデルの重みファイル（容量が大きいため）
 model/
 checkpoints/

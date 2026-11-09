@@ -71,7 +71,27 @@ def make_response_schema(utterance_count):
                 },
                 "self_disclosure": {
                     "type": "string",
+                    "enum": ["0", "1"],
+                },
+                "actual_damage": {
+                    "type": "string",
+                    "enum": ["0", "1"],
+                },
+                "depth": {
+                    "type": "string",
                     "enum": ["0", "1", "2", "3", "4"],
+                },
+                "introspection": {
+                    "type": "string",
+                    "enum": ["0", "1"],
+                },
+                "negative_aspects": {
+                    "type": "string",
+                    "enum": ["0", "1"],
+                },
+                "psychological_resistance": {
+                    "type": "string",
+                    "enum": ["0", "1"],
                 },
             },
             "required": [
@@ -79,6 +99,11 @@ def make_response_schema(utterance_count):
                 "speaker",
                 "utterance",
                 "self_disclosure",
+                "actual_damage",
+                "depth",
+                "introspection",
+                "nagative_aspects",
+                "psychological_resistance",
             ],
             "additionalProperties": False,
         },
