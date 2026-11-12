@@ -1,13 +1,15 @@
+# このプログラムはESconvのコーパスを量子化版のllama-3-elyzaでラベル付けするためのプログラム
 from llama_cpp import Llama
 import os
 from pathlib import Path
 import json
 import time
 from huggingface_hub import try_to_load_from_cache
+import yaml
 
-PROMPT_PATH = Path("../prompts/labelprompt.txt")
-SAVE_PATH = Path("../outputs/elyza_label_output.json")
-CORPUS_PATH = Path("../japanese-daily-dialogue/data/topic1.json")
+PROMPT_PATH = Path("../prompts/self-disclosure.md")
+SAVE_PATH = Path("../outputs/elyza_label_output_test.json")
+CORPUS_PATH = Path("../corpus/Emotional-Support-Conversation/ESconvja.json")
 
 N_CTX = int(os.getenv("LLAMA_N_CTX", "4096"))
 N_BATCH = int(os.getenv("LLAMA_N_BATCH", "512"))
@@ -66,7 +68,7 @@ def make_response_schema(utterance_count):
                 "speaker": {
                     "type": "string",
                 },
-                "utterance": {
+                "content": {
                     "type": "string",
                 },
                 "self_disclosure": {
@@ -97,7 +99,7 @@ def make_response_schema(utterance_count):
             "required": [
                 "turn_num",
                 "speaker",
-                "utterance",
+                "content",
                 "self_disclosure",
                 "actual_damage",
                 "depth",
@@ -116,7 +118,7 @@ def judge_self_disclosure(text):
         {
             "turn_num": item["turn_num"],
             "speaker": item["speaker"],
-            "utterance": item["utterance"],
+            "content": item["content"],
         }
         for item in text
     ]
@@ -162,18 +164,18 @@ def judge_self_disclosure(text):
 
 
 # ラベルを付与する関数
-def label_dataset(utterances):
+def label_dataset(content):
 
     label_list = []
 
-    label = judge_self_disclosure(utterances)
+    label = judge_self_disclosure(content)
 
     label_list.append(label)
 
     length = len(label_list)
     for i in range(length):
 
-        print(f"{len(utterances)}発話ラベル処理完了")
+        print(f"{len(content)}発話ラベル処理完了")
         time.sleep(1)
 
     return label_list
@@ -188,11 +190,11 @@ def save_list(label_list):
 def main():
     # 空のリストを用意
     all_labels = []
-    for dialogue in data[:200]:
+    for dialogue in data[:10]:
         label_num = dialogue["dialogue_id"]
         print(label_num)
         all_labels.append(label_num)
-        label_list = label_dataset(dialogue["utterances"])
+        label_list = label_dataset(dialogue["content"])
         all_labels.extend(label_list)
 
         save_list(all_labels)
