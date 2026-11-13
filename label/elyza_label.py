@@ -6,10 +6,26 @@ import json
 import time
 from huggingface_hub import try_to_load_from_cache
 import yaml
+import argparse
 
-PROMPT_PATH = Path("../prompts/self-disclosure.md")
-SAVE_PATH = Path("../outputs/elyza_label_output_test.json")
-CORPUS_PATH = Path("../corpus/Emotional-Support-Conversation/ESconvja.json")
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "--corpus",
+    type=Path,
+    default=PROJECT_ROOT
+    / "corpus"
+    / "Emotional-Support-Conversation"
+    / "ESConvja.json",
+)
+args = parser.parse_args()
+CORPUS_PATH = args.corpus.expanduser().resolve()
+
+DEF_PATH = PROJECT_ROOT / "definitions.yaml"
+PROMPT_PATH = PROJECT_ROOT / "prompts/self-disclosure.md"
+SAVE_PATH = PROJECT_ROOT / "outputs/elyza_label_output_test.json"
+
 
 N_CTX = int(os.getenv("LLAMA_N_CTX", "4096"))
 N_BATCH = int(os.getenv("LLAMA_N_BATCH", "512"))
@@ -52,6 +68,11 @@ else:
     )
 
 
+def load_definition(path=DEF_PATH):
+    with DEF_PATH.open("r", encoding="utf-8") as p_f:
+        defs = yaml.safe_load(p_f)
+
+
 def make_response_schema(utterance_count):
     """出力をJSONとしてスキーマを定義"""
     return {
@@ -64,12 +85,6 @@ def make_response_schema(utterance_count):
                 "turn_num": {
                     "type": "integer",
                     "minimum": 1,
-                },
-                "speaker": {
-                    "type": "string",
-                },
-                "content": {
-                    "type": "string",
                 },
                 "self_disclosure": {
                     "type": "string",
@@ -95,17 +110,19 @@ def make_response_schema(utterance_count):
                     "type": "string",
                     "enum": ["0", "1"],
                 },
+                "reason": {
+                    "type": "string",
+                },
             },
             "required": [
                 "turn_num",
-                "speaker",
-                "content",
                 "self_disclosure",
                 "actual_damage",
                 "depth",
                 "introspection",
-                "nagative_aspects",
+                "negative_aspects",
                 "psychological_resistance",
+                "string",
             ],
             "additionalProperties": False,
         },
@@ -173,24 +190,23 @@ def label_dataset(content):
     label_list.append(label)
 
     length = len(label_list)
-    for i in range(length):
-
-        print(f"{len(content)}発話ラベル処理完了")
-        time.sleep(1)
-
     return label_list
 
 
+def label_chunk(label_list):
+    chunk_list = []
+
+
 # 判定結果を保存する
-def save_list(label_list):
+def save_list(chunk_list):
     with SAVE_PATH.open("w", encoding="utf-8") as f:
-        json.dump(label_list, f, ensure_ascii=False, indent=4)
+        json.dump(chunk_list, f, ensure_ascii=False, indent=4)
 
 
 def main():
     # 空のリストを用意
     all_labels = []
-    for dialogue in data[:10]:
+    for dialogue in data[:1]:
         label_num = dialogue["dialogue_id"]
         print(label_num)
         all_labels.append(label_num)
