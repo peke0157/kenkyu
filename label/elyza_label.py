@@ -71,6 +71,15 @@ else:
 def load_definition(path=DEF_PATH):
     with DEF_PATH.open("r", encoding="utf-8") as p_f:
         defs = yaml.safe_load(p_f)
+    return defs
+
+
+# 1属性の定義をテキスト化
+def render_item(item):
+    lines = [
+        f"## {item['name']} (キー: {item['key']})",
+        f"定義: {item['definition'].strip()}",
+    ]
 
 
 def make_response_schema(utterance_count):
