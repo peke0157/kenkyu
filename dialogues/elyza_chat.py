@@ -4,9 +4,11 @@ import os
 from pathlib import Path
 from huggingface_hub import try_to_load_from_cache
 from llama_cpp import Llama
+import json
 
 BASE_DIR = Path(__file__).resolve().parent
 PROMPT_PATH = BASE_DIR.parent / "prompts" / "chatprompt.md"
+SAVE_OUTPUT_PATH = BASE_DIR.parent / "outputs" / "chat_output.json"
 MAX_HISTORY_TURNS = 10
 
 MODEL_REPO = "elyza/Llama-3-ELYZA-JP-8B-GGUF"
@@ -16,7 +18,7 @@ LLAMA_OPTIONS = {
     "chat_format": "llama-3",
     "n_ctx": 4096,
     "n_threads": 6,
-    "n_gpu_layers": -1,   # CPU版では無視される。GPUサーバーで実験するとき用
+    "n_gpu_layers": -1,  # CPU版では無視される。GPUサーバーで実験するとき用
     "seed": 42,
     "use_mmap": True,
     "verbose": False,
@@ -48,6 +50,28 @@ def generate_reply(llm, system_prompt, messages):
         **GENERATION_OPTIONS,
     )
     return response["choices"][0]["message"]["content"].strip()
+
+
+def make_save_schema(utterance):
+    """会話履歴を保存する"""
+    return {
+        "type": "array",
+        "minItems": utterance,
+        "maxItems": utterance,
+        "items": {
+            "type": "object",
+            "properties": {
+                "dialogues_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                },
+                "turn_num": {
+                    "type": "integer",
+                    "minimum": 1,
+                },
+            },
+        },
+    }
 
 
 def chatbot():
