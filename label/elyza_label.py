@@ -14,10 +14,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "--corpus",
     type=Path,
-    default=PROJECT_ROOT
-    / "corpus"
-    / "Emotional-Support-Conversation"
-    / "ESConvja.json",
+    default=PROJECT_ROOT / "corpus" / "esconv-ja" / "ESconvja.json",
 )
 args = parser.parse_args()
 CORPUS_PATH = args.corpus.expanduser().resolve()
@@ -32,14 +29,18 @@ N_BATCH = int(os.getenv("LLAMA_N_BATCH", "512"))
 MODEL_REPO = "elyza/Llama-3-ELYZA-JP-8B-GGUF"
 MODEL_FILENAME = "Llama-3-ELYZA-JP-8B-q4_k_m.gguf"
 MAX_OUTPUT_TOKENS = int(os.getenv("LLAMA_N_TOKENS", "2048"))
+# 1回のモデル呼び出しで判定する発話数（長い対話はこの数ずつに分けて判定する）
+CHUNK_SIZE = int(os.getenv("LLAMA_CHUNK_SIZE", "8"))
 
 # 設定値の間違いを確認する
 if N_CTX < 2048:
     raise ValueError("LLAMA_N_CTXは2048以上にしてください。")
 if MAX_OUTPUT_TOKENS >= N_CTX:
     raise ValueError("LLAMA_N_TOKENSはLLAMA_N_CTXよりも小さくしてください。")
+if CHUNK_SIZE < 1:
+    raise ValueError("LLAMA_CHUNK_SIZEは1以上にしてください。")
 
-instructions = PROMPT_PATH.read_text(encoding="utf-8")
+prompt_template = PROMPT_PATH.read_text(encoding="utf-8")
 
 with CORPUS_PATH.open("r", encoding="utf-8") as f:
     data = json.load(f)
@@ -69,8 +70,10 @@ else:
 
 
 def load_definition(path=DEF_PATH):
-    with DEF_PATH.open("r", encoding="utf-8") as p_f:
+    with Path(path).open("r", encoding="utf-8") as p_f:
         defs = yaml.safe_load(p_f)
+    if not isinstance(defs, dict) or "gate" not in defs or "attributes" not in defs:
+        raise ValueError(f"{path} に gate と attributes が必要です。")
     return defs
 
 
@@ -78,61 +81,53 @@ def load_definition(path=DEF_PATH):
 def render_item(item):
     lines = [
         f"## {item['name']} (キー: {item['key']})",
-        f"定義: {item['definition'].strip()}",
+        f"定義: {str(item['definition']).strip()}",
+        "値:",
     ]
+    for value, desc in item.get("values", {}).items():
+        lines.append(f'- "{value}": {desc}')
+    examples = item.get("example") or []
+    if examples:
+        lines.append("例:")
+        for ex in examples:
+            lines.append(f'- 発話: {ex["utterance"]} → "{ex["label"]}"')
+    return "\n".join(lines)
 
 
-def make_response_schema(utterance_count):
-    """出力をJSONとしてスキーマを定義"""
+# プロンプトの {{GATE}} と {{DEFINITIONS}} に定義を埋め込む
+def build_instructions(template, defs):
+    text = template.replace("{{GATE}}", render_item(defs["gate"]))
+    text = text.replace(
+        "{{DEFINITIONS}}",
+        "\n\n".join(render_item(item) for item in defs["attributes"]),
+    )
+    if "{{" in text:
+        raise ValueError("プロンプトに置換されていないプレースホルダーが残っています。")
+    return text
+
+
+definitions = load_definition()
+instructions = build_instructions(prompt_template, definitions)
+
+
+def make_response_schema(utterance_count, defs):
+    """出力をJSONとしてスキーマを定義（キーと値は definitions.yaml から作る）"""
+    label_items = [defs["gate"]] + list(defs["attributes"])
+    properties = {"turn_num": {"type": "integer", "minimum": 1}}
+    for item in label_items:
+        properties[item["key"]] = {
+            "type": "string",
+            "enum": [str(v) for v in item["values"].keys()],
+        }
+    properties["reason"] = {"type": "string"}
     return {
         "type": "array",
         "minItems": utterance_count,
         "maxItems": utterance_count,
         "items": {
             "type": "object",
-            "properties": {
-                "turn_num": {
-                    "type": "integer",
-                    "minimum": 1,
-                },
-                "self_disclosure": {
-                    "type": "string",
-                    "enum": ["0", "1"],
-                },
-                "actual_damage": {
-                    "type": "string",
-                    "enum": ["0", "1"],
-                },
-                "depth": {
-                    "type": "string",
-                    "enum": ["0", "1", "2", "3", "4"],
-                },
-                "introspection": {
-                    "type": "string",
-                    "enum": ["0", "1"],
-                },
-                "negative_aspects": {
-                    "type": "string",
-                    "enum": ["0", "1"],
-                },
-                "psychological_resistance": {
-                    "type": "string",
-                    "enum": ["0", "1"],
-                },
-                "reason": {
-                    "type": "string",
-                },
-            },
-            "required": [
-                "turn_num",
-                "self_disclosure",
-                "actual_damage",
-                "depth",
-                "introspection",
-                "negative_aspects",
-                "psychological_resistance",
-                "string",
-            ],
+            "properties": properties,
+            "required": list(properties.keys()),
             "additionalProperties": False,
         },
     }
@@ -150,32 +145,54 @@ def judge_self_disclosure(text):
     ]
     input_json = json.dumps(input_data, ensure_ascii=False)
 
+    messages = [
+        {"role": "system", "content": instructions},
+        {"role": "user", "content": input_json},
+    ]
+
+    # 入力のトークン数を数え、コンテキストに収まる範囲で出力上限を決める
+    # （64 はチャットテンプレートの特殊トークン分の余裕）
+    prompt_tokens = sum(
+        len(llm.tokenize(m["content"].encode("utf-8"), add_bos=False))
+        for m in messages
+    ) + 64
+    max_tokens = min(MAX_OUTPUT_TOKENS, N_CTX - prompt_tokens)
+    if max_tokens < 50 * len(text):
+        raise RuntimeError(
+            f"コンテキストが足りません（入力 約{prompt_tokens} tokens / N_CTX {N_CTX}）。"
+            "LLAMA_CHUNK_SIZEを小さくするか、LLAMA_N_CTXを大きくしてください。"
+        )
+
     start_time = time.perf_counter()
-    max_tokens = min(MAX_OUTPUT_TOKENS, 64 + 100 * len(text))
     response = llm.create_chat_completion(
-        messages=[
-            {"role": "system", "content": instructions},
-            {"role": "user", "content": input_json},
-        ],
+        messages=messages,
         response_format={
             "type": "json_object",
-            "schema": make_response_schema(len(text)),
+            "schema": make_response_schema(len(text), definitions),
         },
         temperature=0,
         max_tokens=max_tokens,
     )
 
     choice = response["choices"][0]
+    result = choice["message"]["content"].strip()
+    print("モデルの生出力:", repr(result))
+
     if choice.get("finish_reason") == "length":
         raise RuntimeError(
-            "出力がトークン時上限で途切れました。"
-            "LLAMA_MAX_TOKENSを少し増やしてください。"
+            "出力がトークン上限で途切れました。"
+            "LLAMA_N_TOKENSを増やすか、LLAMA_CHUNK_SIZEを小さくしてください。"
         )
 
-    result = choice["message"]["content"].strip()
+    try:
+        result_list = json.loads(result)
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"モデルの出力をJSONとして読めませんでした: {e}") from e
 
-    print("モデルの生出力:", repr(result))
-    result_list = json.loads(result)
+    expected = [item["turn_num"] for item in text]
+    got = [r.get("turn_num") for r in result_list]
+    if got != expected:
+        print(f"警告: turn_numが入力と一致しません（入力 {expected} / 出力 {got}）")
 
     fin_time = time.perf_counter() - start_time
     usage = response.get("usage", {})
@@ -189,21 +206,17 @@ def judge_self_disclosure(text):
     return result_list
 
 
-# ラベルを付与する関数
-def label_dataset(content):
+# 対話を CHUNK_SIZE 発話ずつに分ける
+def label_chunk(dialog, size=CHUNK_SIZE):
+    return [dialog[i : i + size] for i in range(0, len(dialog), size)]
 
+
+# ラベルを付与する関数（1対話分の判定結果をまとめて返す）
+def label_dataset(dialog):
     label_list = []
-
-    label = judge_self_disclosure(content)
-
-    label_list.append(label)
-
-    length = len(label_list)
+    for chunk in label_chunk(dialog):
+        label_list.extend(judge_self_disclosure(chunk))
     return label_list
-
-
-def label_chunk(label_list):
-    chunk_list = []
 
 
 # 判定結果を保存する
@@ -216,11 +229,10 @@ def main():
     # 空のリストを用意
     all_labels = []
     for dialogue in data[:1]:
-        label_num = dialogue["dialogue_id"]
-        print(label_num)
-        all_labels.append(label_num)
-        label_list = label_dataset(dialogue["content"])
-        all_labels.extend(label_list)
+        dialogue_id = dialogue["dialogue_id"]
+        print(dialogue_id)
+        label_list = label_dataset(dialogue["dialog"])
+        all_labels.append({"dialogue_id": dialogue_id, "labels": label_list})
 
         save_list(all_labels)
     print("保存完了")

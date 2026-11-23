@@ -23,11 +23,6 @@ kenkyu/
 ├── .gitignore
 ├── README.md
 ├── requirements.txt
-├── ch07/
-│   ├── ex71.py
-│   └── ex7_2.py
-├── ch8/
-│   └── ch8.py
 ├── dialogues/
 │   ├── chat_keicyo.py
 │   ├── chat_keicyo_revised.py
@@ -44,21 +39,28 @@ kenkyu/
 │   ├── intro.py
 │   └── test.py
 ├── label/
+│   ├── Llama_label.py
+│   ├── Llama_label_tf.py
 │   ├── elyza_label.py
 │   ├── json_add.py
 │   ├── json_csv.py
 │   ├── label.py
 │   └── label101-200.py
 ├── practice/
+│   ├── ch07/
+│   │   ├── ex71.py
+│   │   └── ex7_2.py
+│   ├── ch8/
+│   │   └── ch8.py
 │   └── test.py
 ├── prompts/
 │   ├── chatprompt.md
 │   ├── keicyo.md
 │   ├── keicyo_binary.md
 │   ├── kyokan.md
-│   ├── labelprompt.md
 │   ├── prompt.md
-│   └── seed_plan_prompt.txt
+│   ├── seed_plan_prompt.txt
+│   └── self-disclosure.md
 └── test/
     ├── bertcheck.py
     ├── bertkyu.py
@@ -69,6 +71,78 @@ kenkyu/
 ```
 
 `my_custom_bert/` は `.gitignore` で除外されています。傾聴・共感チャットの実行時にはローカルに配置してください。`outputs/` も追跡対象ではなく、一部の実験用スクリプトはそこに生成したJSONファイルがあることを前提にしています。
+
+## 自己開示ラベル付け（`elyza_label.py`）
+
+[`label/elyza_label.py`](label/elyza_label.py) は、日本語訳したESConvの各発話に、量子化版 Llama-3-ELYZA-JP-8B（`llama-cpp-python`）で自己開示のラベルを付けるスクリプトです。
+
+### 判定する項目
+
+まず自己開示の有無（`self_disclosure`）を判定し、続けて次の4属性を判定します。各発話には判定理由（`reason`）も付きます。
+
+| キー | 内容 | 値 |
+| --- | --- | --- |
+| `actual_damage` | 実害の有無 | `"0"` 無し / `"1"` 有り |
+| `introspection` | 内面性の有無 | `"0"` 表面的 / `"1"` 内面的 |
+| `negative_aspects` | 否定的な側面 | `"0"` 無し / `"1"` 有り |
+| `psychological_resistance` | 開示への心理的抵抗 | `"0"` 無し / `"1"` 有り |
+
+自己開示が無い発話は、4属性をすべて `"0"` にするようプロンプトで指示しています。
+
+### 必要なファイル
+
+| パス | 内容 | Git管理 |
+| --- | --- | --- |
+| `prompts/self-disclosure.md` | 判定用プロンプト。`{{GATE}}` と `{{DEFINITIONS}}` に定義が埋め込まれます。 | 追跡対象 |
+| `definitions.yaml` | 自己開示（`gate`）と各属性（`attributes`）の定義・値・例文。 | `.gitignore` で除外。ローカルに配置してください |
+| `corpus/esconv-ja/ESconvja.json` | 日本語訳ESConv。各対話に `dialogue_id` と `dialog`、各発話に `turn_num`・`speaker`・`content` が必要です。 | 除外 |
+
+判定する属性の種類と値は `definitions.yaml` から読み込み、出力のJSON Schemaも同じファイルから作ります。属性を追加・削除するときは `definitions.yaml` だけを編集すればよく、コードとプロンプトの変更は不要です。
+
+### 実行方法
+
+```bash
+python label/elyza_label.py                       # 既定のコーパスを使う
+python label/elyza_label.py --corpus path/to.json # コーパスを指定する
+```
+
+現在は動作確認のため、先頭の1対話（`data[:1]`）だけを処理します。結果は `outputs/elyza_label_output_test.json` に次の形式で保存されます。
+
+```json
+[
+    {
+        "dialogue_id": 1,
+        "labels": [
+            {"turn_num": 1, "self_disclosure": "0", "actual_damage": "0", "introspection": "0", "negative_aspects": "0", "psychological_resistance": "0", "reason": "..."}
+        ]
+    }
+]
+```
+
+### 環境変数
+
+| 変数 | 既定値 | 内容 |
+| --- | --- | --- |
+| `LLAMA_MODEL_PATH` | なし | GGUFモデルのパス。未指定ならHugging Faceのキャッシュを探し、無ければダウンロードします |
+| `LLAMA_N_CTX` | `4096` | コンテキスト長 |
+| `LLAMA_N_BATCH` | `512` | バッチサイズ |
+| `LLAMA_N_TOKENS` | `2048` | 1回の出力トークン数の上限 |
+| `LLAMA_CHUNK_SIZE` | `8` | 1回のモデル呼び出しで判定する発話数 |
+
+対話は最長120発話あり、1回で渡すとコンテキスト長を超えるため、`LLAMA_CHUNK_SIZE` 発話ずつに分けて判定します。分けたまとまり同士の文脈はモデルに渡していません。「コンテキストが足りません」や「出力がトークン上限で途切れました」というエラーが出た場合は、`LLAMA_CHUNK_SIZE` を小さくするか `LLAMA_N_CTX` を大きくしてください。
+
+### 変更履歴
+
+- 2026-11-23
+  - グループゼミでの議論を受け、属性「開示内容の深さ（`depth`）」を廃止しました。判定する属性は5つから4つになりました。
+  - `{{GATE}}` と `{{DEFINITIONS}}` に `definitions.yaml` の内容を埋め込む処理を実装しました。
+  - 出力のJSON Schemaを `definitions.yaml` から作るようにしました（`required` に誤って `"string"` と書かれていた不具合も解消）。
+  - 長い対話を `LLAMA_CHUNK_SIZE` 発話ずつに分けて判定し、出力トークンの上限を入力の長さから計算するようにしました。
+  - コーパスの参照先を `corpus/esconv-ja/ESconvja.json` に変更し、`dialog` と `dialogue_id` を読むよう修正しました。
+  - 保存形式を、対話ごとに `dialogue_id` と `labels` を持つ形に変更しました。
+  - プロンプト内の自己開示を5段階とする記述を削除し、属性の数を書かない表現に変更しました。
+
+`label/Llama_label_tf.py` は以前のスクリプトで、`depth` を含む属性をコード内に直接書いているため、この変更には対応していません。
 
 ## 傾聴チャットの起動
 
