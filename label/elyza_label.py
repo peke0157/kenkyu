@@ -110,31 +110,42 @@ definitions = load_definition()
 instructions = build_instructions(prompt_template, definitions)
 
 
-def make_response_schema(utterance_count, defs):
-    """出力をJSONとしてスキーマを定義（キーと値は definitions.yaml から作る）"""
-    label_items = [defs["gate"]] + list(defs["attributes"])
-    # reason を各ラベルより先に置き、理由を考えてからラベルを決めさせる
-    # （llama-cpp はこの順番どおりにキーを出力させる）
-    properties = {
-        "turn_num": {"type": "integer", "minimum": 1},
-        "reason": {"type": "string"},
-    }
-    for item in label_items:
-        properties[item["key"]] = {
-            "type": "string",
-            "enum": [str(v) for v in item["values"].keys()],
-        }
-    return {
-        "type": "array",
-        "minItems": utterance_count,
-        "maxItems": utterance_count,
-        "items": {
+def make_response_schema(turn_nums, defs):
+    """出力をJSONとしてスキーマを定義（キーと値は definitions.yaml から作る）
+    自己開示無しなら sd_reason と self_disclosure="0" だけ、
+    自己開示有りなら 4属性それぞれの理由と値も出力させる"""
+
+    def enum_of(item):
+        return {"type": "string", "enum": [str(v) for v in item["values"].keys()]}
+
+    def obj(properties):
+        return {
             "type": "object",
             "properties": properties,
             "required": list(properties.keys()),
             "additionalProperties": False,
-        },
-    }
+        }
+
+    def item_schema(turn_num):
+        # 理由を各ラベルより先に置き、理由を考えてからラベルを決めさせる
+        # （llama-cpp はこの順番どおりにキーを出力させる）
+        head = {
+            "turn_num": {"const": turn_num},  # この位置の turn_num を固定
+            "sd_reason": {"type": "string"},
+        }
+        no_disclosure = obj({**head, "self_disclosure": {"const": "0"}})
+
+        with_attrs = {**head, "self_disclosure": {"const": "1"}}
+        for item in defs["attributes"]:
+            # 各属性も「理由 → 値」の順で出力させる
+            with_attrs[f"{item['key']}_reason"] = {"type": "string"}
+            with_attrs[item["key"]] = enum_of(item)
+
+        return {"anyOf": [no_disclosure, obj(with_attrs)]}
+
+    # 1件目は turn_nums[0]、2件目は turn_nums[1]… の順で出力させる
+    # （モデルが発話の順番を入れ替えたり、番号を抜かしたりできないようにする）
+    return {"type": "array", "prefixItems": [item_schema(n) for n in turn_nums]}
 
 
 def judge_self_disclosure(text):
@@ -175,7 +186,9 @@ def judge_self_disclosure(text):
         messages=messages,
         response_format={
             "type": "json_object",
-            "schema": make_response_schema(len(text), definitions),
+            "schema": make_response_schema(
+                [item["turn_num"] for item in text], definitions
+            ),
         },
         temperature=0,
         max_tokens=max_tokens,
@@ -210,9 +223,13 @@ def judge_self_disclosure(text):
         f"出力: {usage.get('completion_tokens', '?')} tokens)"
     )
 
-    # モデルの判定結果に、元の発話（speaker・content）を付け足す
+    # モデルの判定結果に、元の発話（speaker・content）を turn_num で照合して付け足す
+    by_turn = {r.get("turn_num"): r for r in result_list}
     merged = []
-    for src, label in zip(text, result_list):
+    for src in text:
+        label = by_turn.get(src["turn_num"])
+        if label is None:
+            raise RuntimeError(f"turn_num {src['turn_num']} の判定結果がありません。")
         merged.append({
             "turn_num": src["turn_num"],
             "speaker": src["speaker"],
