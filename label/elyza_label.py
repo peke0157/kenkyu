@@ -113,13 +113,17 @@ instructions = build_instructions(prompt_template, definitions)
 def make_response_schema(utterance_count, defs):
     """出力をJSONとしてスキーマを定義（キーと値は definitions.yaml から作る）"""
     label_items = [defs["gate"]] + list(defs["attributes"])
-    properties = {"turn_num": {"type": "integer", "minimum": 1}}
+    # reason を各ラベルより先に置き、理由を考えてからラベルを決めさせる
+    # （llama-cpp はこの順番どおりにキーを出力させる）
+    properties = {
+        "turn_num": {"type": "integer", "minimum": 1},
+        "reason": {"type": "string"},
+    }
     for item in label_items:
         properties[item["key"]] = {
             "type": "string",
             "enum": [str(v) for v in item["values"].keys()],
         }
-    properties["reason"] = {"type": "string"}
     return {
         "type": "array",
         "minItems": utterance_count,
@@ -152,10 +156,13 @@ def judge_self_disclosure(text):
 
     # 入力のトークン数を数え、コンテキストに収まる範囲で出力上限を決める
     # （64 はチャットテンプレートの特殊トークン分の余裕）
-    prompt_tokens = sum(
-        len(llm.tokenize(m["content"].encode("utf-8"), add_bos=False))
-        for m in messages
-    ) + 64
+    prompt_tokens = (
+        sum(
+            len(llm.tokenize(m["content"].encode("utf-8"), add_bos=False))
+            for m in messages
+        )
+        + 64
+    )
     max_tokens = min(MAX_OUTPUT_TOKENS, N_CTX - prompt_tokens)
     if max_tokens < 50 * len(text):
         raise RuntimeError(
@@ -203,7 +210,16 @@ def judge_self_disclosure(text):
         f"出力: {usage.get('completion_tokens', '?')} tokens)"
     )
 
-    return result_list
+    # モデルの判定結果に、元の発話（speaker・content）を付け足す
+    merged = []
+    for src, label in zip(text, result_list):
+        merged.append({
+            "turn_num": src["turn_num"],
+            "speaker": src["speaker"],
+            "content": src["content"],
+            **{k: v for k, v in label.items() if k != "turn_num"},
+        })
+    return merged
 
 
 # 対話を CHUNK_SIZE 発話ずつに分ける
@@ -228,7 +244,7 @@ def save_list(chunk_list):
 def main():
     # 空のリストを用意
     all_labels = []
-    for dialogue in data[:1]:
+    for dialogue in data[:4]:
         dialogue_id = dialogue["dialogue_id"]
         print(dialogue_id)
         label_list = label_dataset(dialogue["dialog"])
